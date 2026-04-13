@@ -1,0 +1,38 @@
+# 将以下内容写入 .gitignore（会覆盖原文件）
+@"
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+
+# 数据库
+*.sqlite3
+*.sqlite3.bak
+db_backup_*.sqlite3
+
+# 模型文件
+*.pt
+*.pth
+models/
+training/models/
+
+# 数据文件（CSV 等）
+llm_label/data/
+llm_label/out_label/
+llm_label/finetune_data/
+*.csv
+
+# 图片输出
+training/plots/
+media/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+"@ | Out-File -FilePath .gitignore -Encoding utf8

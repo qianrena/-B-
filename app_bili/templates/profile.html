@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}个人信息管理 - B站视频舆情可视化分析系统{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        border: none;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        border-radius: 12px;
+    }
+    .btn-primary {
+        background-color: #1976d2;
+        border-color: #1976d2;
+    }
+    .btn-primary:hover {
+        background-color: #1565c0;
+        border-color: #1565c0;
+    }
+    .small-tip {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h4 class="mb-0">个人信息管理</h4>
+            <p class="text-muted small">管理你的账号信息与B站爬取凭证</p>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="row g-4">
+            <!-- 基础账号信息卡片 -->
+            <div class="col-md-6">
+                <div class="card info-card h-100">
+                    <div class="card-header bg-white border-0 pt-4">
+                        <h5 class="mb-0"><i class="fas fa-user me-2" style="color: #1976d2;"></i>基础账号信息</h5>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">用户名</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="username" name="username" 
+                                       value="{{ user.username }}" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">邮箱</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ user.email }}">
+                            </div>
+                        </div>
+                        <hr>
+                        <p class="small text-muted mb-3">修改信息需要验证当前密码</p>
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label">当前密码 <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="current_password" name="current_password" 
+                                       placeholder="请输入当前密码，任何修改都需要验证" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">新密码（可选）</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                <input type="password" class="form-control" id="new_password" name="new_password" 
+                                       placeholder="不修改则留空，至少6位">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">确认新密码</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                                       placeholder="再次输入新密码">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- B站凭证信息卡片 -->
+            <div class="col-md-6">
+                <div class="card info-card h-100">
+                    <div class="card-header bg-white border-0 pt-4">
+                        <h5 class="mb-0"><i class="fab fa-bilibili me-2" style="color: #1976d2;"></i>B站爬取凭证</h5>
+                    </div>
+                    <div class="card-body pt-0">
+                        {% if has_credential %}
+                        <div class="mb-3 p-2 bg-light rounded">
+                            <p class="mb-1 small text-success">
+                                <i class="fas fa-check-circle me-1"></i>当前已配置有效凭证
+                            </p>
+                            {% if credential_created_at %}
+                            <p class="mb-0 small text-muted">
+                                凭证创建时间：{{ credential_created_at|date:"Y-m-d H:i" }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="mb-3 p-2 bg-light rounded">
+                            <p class="mb-0 small text-muted">
+                                <i class="fas fa-info-circle me-1"></i>暂未配置凭证，配置后可进行视频爬取
+                            </p>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="sessdata" class="form-label">SESSDATA</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                <input type="text" class="form-control" id="sessdata" name="sessdata" 
+                                       placeholder="留空则保留原有凭证">
+                            </div>
+                            <div class="small-tip mt-1">B站Cookie中的SESSDATA字段</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="bili_jct" class="form-label">bili_jct</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                <input type="text" class="form-control" id="bili_jct" name="bili_jct" 
+                                       placeholder="留空则保留原有凭证">
+                            </div>
+                            {% if bili_jct_display %}
+                            <div class="small-tip mt-1">当前已配置：{{ bili_jct_display }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="dedeuserid" class="form-label">DedeUserID（可选）</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="dedeuserid" name="dedeuserid" 
+                                       placeholder="留空则保留原有凭证">
+                            </div>
+                            {% if dedeuserid_display %}
+                            <div class="small-tip mt-1">当前已配置：{{ dedeuserid_display }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="ac_time_value" class="form-label">ac_time_value（可选）</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-clock"></i></span>
+                                <input type="text" class="form-control" id="ac_time_value" name="ac_time_value" 
+                                       placeholder="留空则保留原有凭证">
+                            </div>
+                        </div>
+
+                        <div class="small-tip mt-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            凭证用于B站视频爬取，不修改则留空即可，敏感信息不会明文展示
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提交按钮 -->
+        <div class="row mt-4">
+            <div class="col text-center">
+                <button type="submit" class="btn btn-primary px-5 py-2">
+                    <i class="fas fa-save me-2"></i>保存修改
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

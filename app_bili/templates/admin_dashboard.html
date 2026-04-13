@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}管理后台 - B站视频舆情可视化分析系统{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border: none;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        border-radius: 12px;
+        transition: all 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+    }
+    .module-card {
+        border: none;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        border-radius: 12px;
+        transition: all 0.3s;
+    }
+    .module-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .btn-primary {
+        background-color: #1976d2;
+        border-color: #1976d2;
+    }
+    .btn-primary:hover {
+        background-color: #1565c0;
+        border-color: #1565c0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h4 class="mb-0">管理后台</h4>
+            <p class="text-muted small">系统管理与数据维护</p>
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- 统计卡片 -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-2">
+            <div class="stat-card p-4 h-100">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-primary me-3">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ total_users }}</h5>
+                        <p class="text-muted small mb-0">总用户数</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-card p-4 h-100">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-success me-3">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ total_videos }}</h5>
+                        <p class="text-muted small mb-0">总视频数</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-card p-4 h-100">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-warning me-3">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ total_comments }}</h5>
+                        <p class="text-muted small mb-0">总评论数</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-card p-4 h-100">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-info me-3">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ total_analysis }}</h5>
+                        <p class="text-muted small mb-0">已完成分析</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stat-card p-4 h-100">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-danger me-3">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ unread_errors }}</h5>
+                        <p class="text-muted small mb-0">未读错误</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理模块入口 -->
+    <div class="row g-4">
+        <div class="col-md-3">
+            <a href="{% url 'admin_user_list' %}" class="text-decoration-none">
+                <div class="module-card p-4 text-center">
+                    <i class="fas fa-user-cog fa-3x text-primary mb-3"></i>
+                    <h5>用户管理</h5>
+                    <p class="text-muted small mb-0">管理系统用户，增删改查用户信息</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'admin_video_list' %}" class="text-decoration-none">
+                <div class="module-card p-4 text-center">
+                    <i class="fas fa-film fa-3x text-success mb-3"></i>
+                    <h5>视频管理</h5>
+                    <p class="text-muted small mb-0">管理系统中的视频，编辑删除视频数据</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'admin_comment_list' %}" class="text-decoration-none">
+                <div class="module-card p-4 text-center">
+                    <i class="fas fa-comment-dots fa-3x text-warning mb-3"></i>
+                    <h5>评论管理</h5>
+                    <p class="text-muted small mb-0">管理评论数据，编辑情感标签，删除评论</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'admin_error_log_list' %}" class="text-decoration-none">
+                <div class="module-card p-4 text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h5>错误日志</h5>
+                    <p class="text-muted small mb-0">查看系统错误日志，标记已读，清理日志</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'admin_crawler_manage' %}" class="text-decoration-none">
+                <div class="module-card p-4 text-center">
+                    <i class="fas fa-cogs fa-3x text-info mb-3"></i>
+                    <h5>爬虫与分析</h5>
+                    <p class="text-muted small mb-0">手动触发爬取、重分析、图表重生成</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

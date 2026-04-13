@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}用户管理 - 管理后台{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-card {
+        border: none;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        border-radius: 12px;
+    }
+    .btn-primary {
+        background-color: #1976d2;
+        border-color: #1976d2;
+    }
+    .btn-primary:hover {
+        background-color: #1565c0;
+        border-color: #1565c0;
+    }
+    .pagination .page-link {
+        color: #333333;
+    }
+    .pagination .page-item.active .page-link {
+        background-color: #1976d2;
+        border-color: #1976d2;
+        color: #ffffff;
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h4 class="mb-0">用户管理</h4>
+            <p class="text-muted small">管理系统中的所有用户</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'admin_user_add' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>新增用户
+            </a>
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-arrow-left me-2"></i>返回
+            </a>
+        </div>
+    </div>
+
+    <div class="card table-card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>用户名</th>
+                        <th>邮箱</th>
+                        <th>管理员</th>
+                        <th>注册时间</th>
+                        <th>最后登录</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email|default:'-' }}</td>
+                        <td>
+                            {% if user.is_staff %}
+                            <span class="badge bg-primary">是</span>
+                            {% else %}
+                            <span class="badge bg-secondary">否</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.date_joined|date:"Y-m-d H:i" }}</td>
+                        <td>{{ user.last_login|date:"Y-m-d H:i"|default:'-' }}</td>
+                        <td>
+                            <a href="{% url 'admin_user_edit' user.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="post" action="{% url 'admin_user_delete' user.id %}" class="d-inline" onsubmit="return confirm('确定要删除这个用户吗？删除后无法恢复！')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-users fa-3x mb-3 d-block"></i>
+                            暂无用户数据
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 分页 -->
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-4 d-flex justify-content-center">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">上一页</span>
+            </li>
+            {% endif %}
+
+            {% for i in page_obj.paginator.page_range %}
+                {% if page_obj.number == i %}
+                <li class="page-item active">
+                    <span class="page-link">{{ i }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">下一页</span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

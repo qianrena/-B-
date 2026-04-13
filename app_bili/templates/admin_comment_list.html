@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}评论管理 - 管理后台{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-card {
+        border: none;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        border-radius: 12px;
+    }
+
+    .pagination .page-link {
+        color: #333333;
+    }
+    .pagination .page-item.active .page-link {
+        background-color: #1976d2;
+        border-color: #1976d2;
+        color: #ffffff;
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+    }
+    .text-truncate-content {
+        max-width: 300px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .badge-positive { background-color: #28a745; }
+    .badge-negative { background-color: #dc3545; }
+    .badge-neutral { background-color: #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h4 class="mb-0">评论管理</h4>
+            <p class="text-muted small">管理系统中的所有评论数据</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>返回
+            </a>
+        </div>
+    </div>
+
+    <div class="card table-card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>所属视频</th>
+                        <th>用户</th>
+                        <th>评论内容</th>
+                        <th>粗粒度情感</th>
+                        <th>发布时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comment in comments %}
+                    <tr>
+                        <td>{{ comment.id }}</td>
+                        <td><code>{{ comment.bvid }}</code></td>
+                        <td>{{ comment.user_name }}</td>
+                        <td>
+                            <div class="text-truncate-content" title="{{ comment.content }}">
+                                {{ comment.content }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if comment.coarse_sentiment == 'positive' %}
+                            <span class="badge badge-positive">积极</span>
+                            {% elif comment.coarse_sentiment == 'negative' %}
+                            <span class="badge badge-negative">消极</span>
+                            {% elif comment.coarse_sentiment == 'neutral' %}
+                            <span class="badge badge-neutral">中性</span>
+                            {% else %}
+                            <span class="badge bg-secondary">未标注</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ comment.publish_time|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <a href="{% url 'admin_comment_edit' comment.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="post" action="{% url 'admin_comment_delete' comment.id %}" class="d-inline" onsubmit="return confirm('确定要删除这条评论吗？无法恢复！')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-comments fa-3x mb-3 d-block"></i>
+                            暂无评论数据
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 分页 -->
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-4 d-flex justify-content-center">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">上一页</span>
+            </li>
+            {% endif %}
+
+            {% with current_page=page_obj.number total_pages=page_obj.paginator.num_pages %}
+                {% if total_pages > 1 %}
+                    <ul class="pagination">
+                        {# 上一页 #}
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">上一页</span>
+                            </li>
+                        {% endif %}
+
+                        {# 第一页 #}
+                        {% if current_page > 3 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1">1</a>
+                            </li>
+                            {% if current_page > 4 %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            {% endif %}
+                        {% endif %}
+
+                        {# 当前页附近的页码 #}
+                        {% for i in page_obj.paginator.page_range %}
+                            {% if i >= current_page|add:"-2" and i <= current_page|add:"2" %}
+                                {% if page_obj.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {# 最后一页 #}
+                        {% if current_page < total_pages|add:"-2" %}
+                            {% if current_page < total_pages|add:"-3" %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            {% endif %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ total_pages }}">{{ total_pages }}</a>
+                            </li>
+                        {% endif %}
+
+                        {# 下一页 #}
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">下一页</span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

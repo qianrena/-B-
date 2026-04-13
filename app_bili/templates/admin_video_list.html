@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}视频管理 - 管理后台{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-card {
+        border: none;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        border-radius: 12px;
+    }
+    .pagination .page-link {
+        color: #333333;
+    }
+    .pagination .page-item.active .page-link {
+        background-color: #1976d2;
+        border-color: #1976d2;
+        color: #ffffff;
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+    }
+    .text-truncate-title {
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h4 class="mb-0">视频管理</h4>
+            <p class="text-muted small">管理系统中的所有视频数据</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>返回
+            </a>
+        </div>
+    </div>
+
+    <div class="card table-card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>BV号</th>
+                        <th>标题</th>
+                        <th>UP主</th>
+                        <th>状态</th>
+                        <th>评论数</th>
+                        <th>最后爬取</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for video in videos %}
+                    <tr>
+                        <td><code>{{ video.bvid }}</code></td>
+                        <td>
+                            <div class="text-truncate-title" title="{{ video.title }}">
+                                {{ video.title }}
+                            </div>
+                        </td>
+                        <td>{{ video.owner_name }}</td>
+                        <td>
+                            {% if video.status == 'completed' %}
+                            <span class="badge bg-success">已完成</span>
+                            {% elif video.status == 'processing' %}
+                            <span class="badge bg-warning">爬取中</span>
+                            {% elif video.status == 'failed' %}
+                            <span class="badge bg-danger">失败</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ video.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ video.comment_count }}</td>
+                        <td>{{ video.last_crawl_time|date:"Y-m-d H:i"|default:'-' }}</td>
+                        <td>
+                            <a href="{% url 'admin_video_edit' video.bvid %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="post" action="{% url 'admin_video_delete' video.bvid %}" class="d-inline" onsubmit="return confirm('确定要删除这个视频吗？这会删除所有关联的评论和分析数据，无法恢复！')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="fas fa-video fa-3x mb-3 d-block"></i>
+                            暂无视频数据
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 分页 -->
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-4 d-flex justify-content-center">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">上一页</span>
+            </li>
+            {% endif %}
+
+            {% for i in page_obj.paginator.page_range %}
+                {% if page_obj.number == i %}
+                <li class="page-item active">
+                    <span class="page-link">{{ i }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">下一页</span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
