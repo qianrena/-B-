@@ -58,7 +58,7 @@ def profile(request):
         credential = None
         has_credential = False
     if request.method == 'POST':
-        # 1. 处理基础信息（用户名、邮箱）
+        # 处理基础信息（用户名、邮箱）
         new_username = request.POST.get('username', '').strip()
         new_email = request.POST.get('email', '').strip()
         current_password = request.POST.get('current_password', '')
@@ -104,7 +104,7 @@ def profile(request):
                 update_session_auth_hash(request, user)
         # 保存用户基础信息
         user.save()
-        # 2. 处理 B站凭证（可选）
+        # 处理 B站凭证（可选）
         sessdata = request.POST.get('sessdata', '').strip()
         bili_jct = request.POST.get('bili_jct', '').strip()
         dedeuserid = request.POST.get('dedeuserid', '')
@@ -210,7 +210,7 @@ def admin_required(view_func):
 @admin_required  # 管理员权限装饰器
 async def admin_sentiment_action(request):
     action = request.POST.get('action')
-    bvid = request.POST.get('bvid')  # 可选，指定BV
+    bvid = request.POST.get('bvid')
 
     if action == 'predict_unpredicted':
         result = await SentimentAdminService.predict_unpredicted(bvid)
@@ -258,6 +258,11 @@ def video_detail(request, bvid):
             analysis.chart_fine_cum_like_content = read_chart_content(analysis.chart_fine_cum_like)
             analysis.chart_dual_axis_content = read_chart_content(analysis.chart_dual_axis)
             analysis.chart_wordcloud_content = read_chart_content(analysis.chart_wordcloud)
+            analysis.chart_fine_like_bar_content = read_chart_content(analysis.chart_fine_like_bar)
+            analysis.chart_hot_vs_normal_content = read_chart_content(analysis.chart_hot_vs_normal)
+            analysis.chart_region_sentiment_content = read_chart_content(analysis.chart_region_sentiment)
+            analysis.chart_image_vs_text_content = read_chart_content(analysis.chart_image_vs_text)
+            analysis.chart_level_sentiment_content = read_chart_content(analysis.chart_level_sentiment)
     except VideoAnalysis.DoesNotExist:
         pass
     # 把tags转成列表，避免前端单个字符的问题
@@ -278,7 +283,7 @@ def video_detail(request, bvid):
     return render(request, 'video_detail.html', context)
 
 
-# 新增：切换收藏状态的接口
+# 切换收藏状态的接口
 @login_required
 @require_http_methods(['POST'])
 def toggle_favorite(request):
@@ -316,7 +321,7 @@ def toggle_favorite(request):
     })
 
 
-# 新增：我的收藏页面
+# 我的收藏页面
 @login_required
 def my_favorites(request):
     """我的收藏页面，展示用户收藏的所有视频，分页展示，一页8个"""
@@ -343,7 +348,7 @@ def my_favorites(request):
     return render(request, 'my_favorites.html', context)
 
 
-# 新增：已分析视频页面
+# 已分析视频页面
 @login_required
 def all_videos(request):
     """已分析视频页面，展示所有的视频，一页8个，一行4个"""
@@ -365,7 +370,7 @@ def all_videos(request):
     return render(request, 'all_videos.html', context)
 
 
-# ====================== 管理员增删改查功能 ======================
+# 管理员增删改查功能
 @login_required
 @admin_required
 def admin_dashboard(request):
@@ -691,7 +696,7 @@ def admin_error_log_delete(request, log_id):
     return redirect('admin_error_log_list')
 
 
-# ====================== 爬虫与分析管理员功能 ======================
+# 爬虫与分析管理员功能
 @login_required
 @admin_required
 def admin_crawler_manage(request):

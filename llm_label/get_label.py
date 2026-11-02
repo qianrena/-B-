@@ -14,11 +14,10 @@ import json
 from typing import List, Dict, Any
 from pathlib import Path
 
-# ========== 初始化 Django 环境 ==========
-# 请根据你的实际项目结构调整 sys.path 和 settings 模块名
-DJANGO_PROJECT_ROOT = Path(__file__).resolve().parent.parent  # 假设脚本位于 Bili_web/llm_label/
+# 初始化 Django 环境
+DJANGO_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(DJANGO_PROJECT_ROOT))
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Bili_web.settings')  # 替换为你的 settings 模块名
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Bili_web.settings')
 
 import django
 
@@ -29,7 +28,7 @@ from app_bili.models import VideoInfo
 import dashscope
 from dashscope import MultiModalConversation
 
-# ================== 配置 ==================
+# 配置
 dashscope.base_http_api_url = "https://dashscope.aliyuncs.com/api/v1"
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
 
@@ -41,10 +40,10 @@ OUT_LABEL_DIR.mkdir(parents=True, exist_ok=True)
 # 并发控制
 DEFAULT_CONCURRENCY = 10
 CONFIDENCE_THRESHOLD = 0.7
-DEFAULT_MODEL = "qwen3.5-122b-a10b"
+DEFAULT_MODEL = "qwen3.5-plus"
 
 
-# ================== 视频信息辅助函数 ==================
+# 视频信息辅助函数
 def get_video_context(bvid: str) -> Dict[str, str]:
     """
     根据 BV 号从数据库获取视频标题和标签
@@ -58,7 +57,7 @@ def get_video_context(bvid: str) -> Dict[str, str]:
         return {'title': '', 'tags': ''}
 
 
-# ================== 提示词构建 ==================
+# 提示词构建
 def build_prompt(text: str, has_image: bool, video_context: Dict[str, str] = None) -> str:
     """构建发送给大模型的提示词，包含视频标题和标签（如有）"""
     video_info = ""
@@ -130,7 +129,7 @@ def parse_model_response(raw_json: str) -> Dict[str, Any]:
     return result
 
 
-# ================== API 调用核心 ==================
+# API 调用核心
 def classify_single_sync(
         text: str,
         image_paths: List[str],
@@ -218,12 +217,12 @@ async def batch_classify(
     return await asyncio.gather(*tasks)
 
 
-# ================== CSV 处理 ==================
+# CSV 处理
 def process_csv_file(csv_path: Path) -> None:
     """处理单个 CSV 文件：读取、分类、保存结果"""
     print(f"\n处理文件: {csv_path.name}")
 
-    # 从文件名提取 BV 号（假设格式为 BVxxxx.csv 或 BVxxxx_xxx.csv）
+    # 从文件名提取 BV 号
     bvid = csv_path.stem.split('_')[0]
     video_context = get_video_context(bvid)
     if video_context['title']:
@@ -253,7 +252,6 @@ def process_csv_file(csv_path: Path) -> None:
     )
 
     # 按置信度分类
-    high_conf = [r for r in labeled_rows if r.get("confidence", 0) >= CONFIDENCE_THRESHOLD]
     low_conf = [r for r in labeled_rows if 0.0 < r.get("confidence", 0) < CONFIDENCE_THRESHOLD]
     failed = [r for r in labeled_rows if r.get("confidence", 0) == 0.0]
 
@@ -289,7 +287,7 @@ def process_csv_file(csv_path: Path) -> None:
         print(f"  失败请求保存至: {out_failed}")
 
 
-# ================== 主函数 ==================
+# 主函数
 def main():
     """主函数：自动处理 data 目录下的所有 CSV 文件"""
     if not DASHSCOPE_API_KEY:

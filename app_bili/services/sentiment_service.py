@@ -22,7 +22,7 @@ class SentimentAdminService:
         :return: 处理结果统计
         """
         try:
-            # 1. 筛选未预测的评论
+            # 筛选未预测的评论
             query = CommentInfo.objects.filter(Q(coarse_sentiment__isnull=True) | Q(coarse_sentiment=''))
             if bvid:
                 query = query.filter(bvid=bvid)
@@ -31,7 +31,7 @@ class SentimentAdminService:
             if total == 0:
                 return {"success": True, "processed": 0, "message": "没有未预测的评论"}
 
-            # 2. 批量处理
+            # 批量处理
             comments = await sync_to_async(list)(query.all())
             processed = 0
 
@@ -74,7 +74,7 @@ class SentimentAdminService:
         :return: 处理结果统计
         """
         try:
-            # 1. 筛选所有评论
+            # 筛选所有评论
             query = CommentInfo.objects.all()
             if bvid:
                 query = query.filter(bvid=bvid)
@@ -83,7 +83,7 @@ class SentimentAdminService:
             if total == 0:
                 return {"success": True, "processed": 0, "message": "没有评论数据"}
 
-            # 2. 批量处理
+            # 批量处理
             comments = await sync_to_async(list)(query.all())
             processed = 0
 
@@ -125,7 +125,7 @@ class SentimentAdminService:
         :return: 处理结果统计
         """
         try:
-            # 1. 筛选要处理的视频
+            # 筛选要处理的视频
             query = VideoInfo.objects.all()
             if bvid:
                 query = query.filter(bvid=bvid)
@@ -136,29 +136,35 @@ class SentimentAdminService:
 
             for video in videos:
                 try:
-                    # 2. 重新生成这个视频的所有图表
+                    # 重新生成这个视频的所有图表
                     def run_analysis():
                         analyzer = SingleVideoAnalyzer(bvid=video.bvid)
                         analyzer.load_data()
                         analyzer.plot_overall_sentiment()
                         analyzer.plot_time_evolution()
                         analyzer.plot_interaction_correlation()
-                        # 这里可以加上你原来的词云等其他图表生成
+                        analyzer.plot_user_feature_cross()
+                        analyzer.plot_wordcloud()
                         return analyzer
 
                     await sync_to_async(run_analysis)()
 
-                    # 3. 更新分析记录
+                    # 更新分析记录
                     analysis, created = await sync_to_async(VideoAnalysis.objects.get_or_create)(video=video)
                     # 更新图表路径
-                    analysis.chart_coarse_pie = f"analysis/{video.bvid}/1.1_coarse_pie.html"
-                    analysis.chart_fine_bar = f"analysis/{video.bvid}/1.2_fine_bar.html"
-                    analysis.chart_coarse_cum_count = f"analysis/{video.bvid}/2.0_coarse_cum_count.html"
-                    analysis.chart_coarse_cum_like = f"analysis/{video.bvid}/2.1_coarse_cum_like.html"
-                    analysis.chart_fine_cum_count = f"analysis/{video.bvid}/2.2_fine_cum_count.html"
-                    analysis.chart_fine_cum_like = f"analysis/{video.bvid}/2.3_fine_cum_like.html"
-                    analysis.chart_dual_axis = f"analysis/{video.bvid}/2.4_comment_neg_rate.html"
-                    analysis.chart_wordcloud = f"analysis/{video.bvid}/5.2_wordcloud.html"
+                    analysis.chart_coarse_pie = f"analysis/{video.bvid}/coarse_pie.html"
+                    analysis.chart_fine_bar = f"analysis/{video.bvid}/fine_bar.html"
+                    analysis.chart_coarse_cum_count = f"analysis/{video.bvid}/coarse_cum_count.html"
+                    analysis.chart_coarse_cum_like = f"analysis/{video.bvid}/coarse_cum_like.html"
+                    analysis.chart_fine_cum_count = f"analysis/{video.bvid}/fine_cum_count.html"
+                    analysis.chart_fine_cum_like = f"analysis/{video.bvid}/fine_cum_like.html"
+                    analysis.chart_dual_axis = f"analysis/{video.bvid}/comment_neg_rate.html"
+                    analysis.chart_wordcloud = f"analysis/{video.bvid}/wordcloud.html"
+                    analysis.chart_fine_like_bar = f"analysis/{video.bvid}/fine_like_bar.html"
+                    analysis.chart_hot_vs_normal = f"analysis/{video.bvid}/hot_vs_normal.html"
+                    analysis.chart_region_sentiment = f"analysis/{video.bvid}/region_sentiment.html"
+                    analysis.chart_image_vs_text = f"analysis/{video.bvid}/image_vs_text.html"
+                    analysis.chart_level_sentiment = f"analysis/{video.bvid}/level_sentiment.html"
                     analysis.status = 'completed'
                     analysis.total_comments = await sync_to_async(
                         lambda: CommentInfo.objects.filter(video=video).count()

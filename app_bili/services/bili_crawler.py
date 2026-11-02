@@ -2,7 +2,7 @@
 B站舆情分析爬虫 - 异步版本
 使用 bilibili-api-python 原生异步 API
 所有数据库操作均通过 sync_to_async 包装，避免异步上下文错误
-参考API文档: https://nemo2011.github.io/bilibili-api/#/
+API文档: https://nemo2011.github.io/bilibili-api/#/
 """
 import asyncio
 import hashlib
@@ -26,7 +26,7 @@ from .clean_comments import clean_text
 from .predict_comments import predict_batch
 
 
-# ==================== 辅助函数：异步指数退避重试 ====================
+# 辅助函数：异步指数退避重试
 async def retry_async(func, max_retries=3, base_delay=1.0, backoff=2, exceptions=(Exception,)):
     """异步函数指数退避重试"""
     for attempt in range(max_retries):
@@ -41,7 +41,7 @@ async def retry_async(func, max_retries=3, base_delay=1.0, backoff=2, exceptions
     raise RuntimeError("Unreachable")
 
 
-# ==================== 同步 ORM 操作包装为异步 ====================
+# 同步 ORM 操作包装为异步
 @sync_to_async
 def get_existing_max_timestamp(bvid: str) -> int:
     max_ts = CommentInfo.objects.filter(bvid=bvid).aggregate(max_ts=Max('timestamp'))['max_ts']
@@ -60,7 +60,7 @@ def get_video_comment_count(video) -> int:
     return CommentInfo.objects.filter(video=video).count()
 
 
-# ==================== 封面下载器 ====================
+# 封面下载器
 class CoverDownloader:
     """封面下载器（同步，但可以在异步中调用）"""
     def __init__(self):
@@ -97,7 +97,7 @@ class CoverDownloader:
         return 'jpg'
 
 
-# ==================== 评论图片下载器 ====================
+# 评论图片下载器
 class ImageDownloader:
     def __init__(self, max_retries: int = 3, delay: float = 0.5):
         self.base_dir = Path(settings.MEDIA_ROOT) / 'images'
@@ -161,7 +161,7 @@ class ImageDownloader:
         return self.stats.copy()
 
 
-# ==================== 主爬虫类（异步） ====================
+# 主爬虫类（异步）
 class BiliCrawler:
     def __init__(self, credential_dict: dict):
         sessdata = credential_dict.get('sessdata', '')
@@ -233,7 +233,6 @@ class BiliCrawler:
 
     def _parse_comment(self, reply_obj, bvid: str) -> Dict:
         """解析单条评论（同步方法，因为不涉及网络，暂不下载图片）
-        参考API文档: https://nemo2011.github.io/bilibili-api/#/
         """
         member = reply_obj.get('member', {})
         content = reply_obj.get('content', {})
@@ -271,7 +270,6 @@ class BiliCrawler:
 
     async def batch_download_comment_images(self, comments: List[Dict], video):
         """批量下载评论中的图片，在所有评论保存到数据库后执行
-        参考API文档: https://nemo2011.github.io/bilibili-api/#/
         """
         # 遍历所有新评论，下载图片
         comment_objs_to_update = []
@@ -307,7 +305,6 @@ class BiliCrawler:
 
     async def fetch_comments_incremental(self, bvid: str, max_loops: int = None, force_full: bool = False) -> List[Dict]:
         """异步增量/全量爬取评论，使用 get_comments_lazy 生成器
-        参考API文档: https://nemo2011.github.io/bilibili-api/#/
         - 全量模式：忽略已有的最大时间戳，从头爬取所有评论
         - 增量模式：读取已有的最大时间戳，只爬新评论，之后更新热门评论的点赞数
         """
@@ -405,69 +402,6 @@ class BiliCrawler:
             except Exception as e:
                 print(f"更新热门评论点赞数失败: {e}，不影响主流程")
 
-        # 自动对新评论做情感预测，同步更新分析图表
-        if new_comments:
-            print("开始对新评论进行情感预测...")
-            try:
-                # 1. 从数据库取出刚保存的新评论对象
-                new_rpids = [comment['rpid'] for comment in new_comments]
-                new_comment_objs = await sync_to_async(
-                    lambda: list(CommentInfo.objects.filter(rpid__in=new_rpids, bvid=bvid))
-                )()
-
-                if new_comment_objs:
-                    # 2. 批量预测新评论的情感（同步函数包装成异步，避免阻塞）
-                    predictions = await sync_to_async(predict_batch)(new_comment_objs)
-
-                    # 3. 批量更新评论的情感字段到数据库
-                    for comment, pred in zip(new_comment_objs, predictions):
-                        comment.coarse_sentiment = pred['coarse_sentiment']
-                        comment.fine_sentiment = pred['fine_sentiment']
-                        comment.sentiment_score = pred['sentiment_score']
-                    await sync_to_async(
-                        lambda: CommentInfo.objects.bulk_update(
-                            new_comment_objs,
-                            ['coarse_sentiment', 'fine_sentiment', 'sentiment_score']
-                        )
-                    )()
-                    print(f"✅ 情感预测完成，共处理 {len(new_comment_objs)} 条新评论")
-
-                # 4. 同步更新分析图表（重新生成所有分析图片）
-                print("同步更新分析图表...")
-                from sentiment_analyzer import SingleVideoAnalyzer
-
-                # 调用分析器重新生成所有图表
-                def run_analysis():
-                    analyzer = SingleVideoAnalyzer(bvid=bvid)
-                    analyzer.load_data()
-                    analyzer.plot_overall_sentiment()
-                    analyzer.plot_time_evolution()
-                    analyzer.plot_interaction_correlation()
-                    # 这里可以加上你原来的词云等其他图表生成
-                    return analyzer
-
-                await sync_to_async(run_analysis)()
-
-                # 5. 更新分析结果的数据库记录，让前端能读到新的图表
-                video = await sync_to_async(VideoInfo.objects.get)(bvid=bvid)
-                analysis, created = await sync_to_async(VideoAnalysis.objects.get_or_create)(video=video)
-                # 更新图表路径
-                analysis.chart_coarse_pie = f"analysis/{bvid}/1.1_coarse_pie.html"
-                analysis.chart_fine_bar = f"analysis/{bvid}/1.2_fine_bar.html"
-                analysis.chart_coarse_cum_count = f"analysis/{bvid}/2.0_coarse_cum_count.html"
-                analysis.chart_coarse_cum_like = f"analysis/{bvid}/2.1_coarse_cum_like.html"
-                analysis.chart_fine_cum_count = f"analysis/{bvid}/2.2_fine_cum_count.html"
-                analysis.chart_fine_cum_like = f"analysis/{bvid}/2.3_fine_cum_like.html"
-                analysis.chart_dual_axis = f"analysis/{bvid}/2.4_comment_neg_rate.html"
-                analysis.chart_wordcloud = f"analysis/{bvid}/5.2_wordcloud.html"
-                analysis.status = 'completed'
-                analysis.total_comments = await sync_to_async(
-                    lambda: CommentInfo.objects.filter(video=video).count())()
-                await sync_to_async(analysis.save)()
-
-                print("分析图表同步更新完成！")
-            except Exception as e:
-                print(f"情感预测/图表更新失败: {e}，不影响主爬取流程")
 
         return new_comments
 

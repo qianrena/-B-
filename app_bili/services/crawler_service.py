@@ -1,4 +1,3 @@
-# crawler_service.py
 import datetime
 import asyncio
 from typing import Optional
@@ -11,10 +10,9 @@ from .bili_crawler import BiliCrawler
 
 class CrawlerService:
     """爬虫服务管理类（同时提供同步和异步接口）
-    参考API文档: https://nemo2011.github.io/bilibili-api/#/
     """
 
-    # ========== 同步数据库方法（供视图直接调用） ==========
+    # 同步数据库方法（供视图直接调用）
     @staticmethod
     def get_video_sync(bvid: str) -> Optional[VideoInfo]:
         try:
@@ -43,14 +41,14 @@ class CrawlerService:
         video.comment_count = CommentInfo.objects.filter(video=video).count()
         video.save(update_fields=['comment_count'])
 
-    # 同步获取用户凭证（明文）
+    # 同步获取用户凭证
     @staticmethod
     def get_credential_sync(user) -> Optional[dict]:
         try:
             credential_obj = UserCredential.objects.get(user=user, is_active=True)
             sessdata = credential_obj.sessdata
             bili_jct = credential_obj.bili_jct
-            # 关键：必须同时有 sessdata 和 bili_jct 才返回
+            # 必须同时有 sessdata 和 bili_jct 才返回
             if not sessdata or not bili_jct:
                 return None
             return {
@@ -71,7 +69,7 @@ class CrawlerService:
         credential_obj.ac_time_value = new_plain['ac_time_value']
         credential_obj.save()
 
-    # ========== 异步凭证刷新 ==========
+    # 异步凭证刷新
     @staticmethod
     async def refresh_and_update_credential_async(user):
         """异步刷新凭证（使用同步方法包装）"""
@@ -98,7 +96,7 @@ class CrawlerService:
             print(f"凭证刷新失败: {e}")
             return None
 
-    # ========== 异步爬虫核心 ==========
+    # 异步爬虫核心
     @classmethod
     async def crawl_video_async(cls, user, bvid: str, force_full: bool = False) -> dict:
         result = {'success': False, 'video_info_updated': False, 'comments_added': 0, 'error': None}
@@ -183,8 +181,8 @@ class CrawlerService:
             comments = await crawler.fetch_comments_incremental(bvid, force_full=force_full)
             await crawler.save_comments_to_db(comments, video)
 
-            # ==================== 所有元数据采集完成，现在下载静态资源 ====================
-            # 1. 下载封面（所有数据采集完成后才下载，避免爬取失败残留封面文件）
+            # 所有元数据采集完成，现在下载静态资源
+            # 下载封面（所有数据采集完成后才下载，避免爬取失败残留封面文件）
             if video_info_data.get('cover_url'):
                 local_cover = await asyncio.to_thread(
                     crawler.cover_downloader.download,
@@ -192,13 +190,43 @@ class CrawlerService:
                 )
                 if local_cover:
                     video.cover_local_path = local_cover
-            # 2. 批量下载评论中的图片（所有评论保存后才下载，避免爬取失败残留图片文件）
+            # 批量下载评论中的图片（所有评论保存后才下载，避免爬取失败残留图片文件）
             if comments:
                 await crawler.batch_download_comment_images(comments, video)
 
+            if comments:
+                print("开始对新评论进行情感预测...")
+                try:
+                    from .predict_comments import predict_batch
+                    new_rpids = [c['rpid'] for c in comments]
+                    new_comment_objs = await sync_to_async(
+                        lambda: list(CommentInfo.objects.filter(rpid__in=new_rpids, bvid=bvid))
+                    )()
+                    if new_comment_objs:
+                        predictions = await sync_to_async(predict_batch)(new_comment_objs)
+                        for comment, pred in zip(new_comment_objs, predictions):
+                            comment.coarse_sentiment = pred['coarse_sentiment']
+                            comment.fine_sentiment = pred['fine_sentiment']
+                            comment.sentiment_score = pred['sentiment_score']
+                        await sync_to_async(CommentInfo.objects.bulk_update)(
+                            new_comment_objs, ['coarse_sentiment', 'fine_sentiment', 'sentiment_score']
+                        )
+                        print(f"情感预测完成，共处理 {len(new_comment_objs)} 条新评论")
+
+                    # 生成图表
+                    print("同步更新分析图表...")
+                    from .sentiment_analyzer import SingleVideoAnalyzer
+                    def run_analysis():
+                        analyzer = SingleVideoAnalyzer(bvid=bvid)
+                        analyzer.run_analysis()
+
+                    await sync_to_async(run_analysis)()
+                    print("分析图表同步更新完成！")
+                except Exception as e:
+                    print(f"情感预测/图表更新失败: {e}，不影响主爬取流程")
+
             # 更新最终状态
             video.status = 'completed'
-            # 修复：正确包装 filter().count() 整个同步操作，移除多余的调用，避免coroutine调用错误
             video.comment_count = await sync_to_async(lambda: CommentInfo.objects.filter(video=video).count())()
             await sync_to_async(video.save)()
             result['success'] = True
@@ -283,7 +311,6 @@ class CrawlerService:
                 await crawler.batch_download_comment_images(comments, video)
 
             video.status = 'completed'
-            # 修复：正确包装 filter().count() 整个同步操作，移除多余的调用，避免coroutine调用错误
             video.comment_count = await sync_to_async(lambda: CommentInfo.objects.filter(video=video).count())()
             video.last_crawl_time = timezone.now()
             await sync_to_async(video.save)()

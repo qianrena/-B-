@@ -1,6 +1,5 @@
 from django.contrib.auth.models import User
 from django.db import models
-from cryptography.fernet import Fernet
 from django.conf import settings
 
 
@@ -352,6 +351,11 @@ class VideoAnalysis(models.Model):
     chart_fine_cum_like = models.CharField(max_length=255, blank=True, verbose_name='细粒度累计点赞数面积图')
     chart_dual_axis = models.CharField(max_length=255, blank=True, verbose_name='评论量与负面率双轴图')
     chart_wordcloud = models.CharField(max_length=255, blank=True, verbose_name='全评论词云')
+    chart_fine_like_bar = models.CharField(max_length=255, blank=True, verbose_name='细粒度平均点赞柱状图')
+    chart_hot_vs_normal = models.CharField(max_length=255, blank=True, verbose_name='热评与普通评论情感对比图')
+    chart_region_sentiment = models.CharField(max_length=255, blank=True, verbose_name='地区情感占比图')
+    chart_image_vs_text = models.CharField(max_length=255, blank=True, verbose_name='带图与纯文本情感对比图')
+    chart_level_sentiment = models.CharField(max_length=255, blank=True, verbose_name='用户等级情感占比图')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='分析时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='最后更新时间')
     error_message = models.TextField(blank=True, verbose_name='错误信息')

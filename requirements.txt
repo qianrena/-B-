@@ -1,0 +1,17 @@
+asgiref==3.11.0
+bilibili_api_python==17.4.1
+cn_clip==1.6.0
+dashscope==1.25.16
+Django==6.0.5
+jieba3k==0.35.1
+matplotlib==3.10.9
+numpy==2.4.6
+pandas==3.0.3
+peft==0.18.1
+Pillow==12.2.0
+pyecharts==2.1.0
+Requests==2.34.2
+scikit_learn==1.8.0
+seaborn==0.13.2
+torch==2.8.0+cu129
+tqdm==4.67.1

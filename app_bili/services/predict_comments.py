@@ -7,7 +7,7 @@ import os
 import sys
 import django
 from pathlib import Path
-# ---------- Django 环境初始化 ----------
+# Django 环境初始化
 DJANGO_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(DJANGO_PROJECT_ROOT))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Bili_web.settings')
@@ -21,7 +21,7 @@ from peft import LoraConfig, get_peft_model
 import cn_clip.clip as clip
 from cn_clip.clip import load_from_name
 
-# ---------- 配置 ----------
+# 配置
 device = "cuda" if torch.cuda.is_available() else "cpu"
 MODEL_NAME = "ViT-B-16"
 PRETRAINED_MODEL_PATH = DJANGO_PROJECT_ROOT / "models" / "clip_cn_vit-b-16.pt"
@@ -31,7 +31,7 @@ BATCH_SIZE = 8
 COARSE_IDX_TO_LABEL = {0: 'positive', 1: 'neutral', 2: 'negative'}
 FINE_IDX_TO_LABEL = {0: 'happiness', 1: 'anger', 2: 'sadness', 3: 'fear', 4: 'surprise', 5: 'neutral'}
 
-# ---------- 懒加载：模型初始化为None，第一次用的时候才加载 ----------
+# 懒加载：模型初始化为None，第一次用的时候才加载
 model = None
 preprocess = None
 
@@ -92,7 +92,7 @@ def load_model_once():
     model.eval()
     print("情感分析模型加载完成！")
 
-# ---------- 批量预测函数 ----------
+# 批量预测函数
 def predict_batch(comments):
     # 懒加载：第一次调用的时候才加载模型
     load_model_once()
@@ -140,7 +140,7 @@ def predict_batch(comments):
         })
     return results
 
-# ---------- 主处理函数 ----------
+# 主处理函数
 def process_all_comments(bvid=None):
     queryset = CommentInfo.objects.all()
     if bvid:
@@ -164,7 +164,7 @@ def process_all_comments(bvid=None):
         )
     print("所有评论处理完成并已更新数据库。")
 
-# ---------- 命令行入口 ----------
+# 命令行入口
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="对数据库中评论进行情感预测")

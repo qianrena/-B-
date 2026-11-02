@@ -10,7 +10,7 @@ import csv
 from pathlib import Path
 from collections import Counter
 
-# ========== Django 环境初始化 ==========
+# Django 环境初始化
 DJANGO_PROJECT_ROOT = Path(__file__).resolve().parent.parent  # Bili_web 目录
 sys.path.append(str(DJANGO_PROJECT_ROOT))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Bili_web.settings')
@@ -19,7 +19,7 @@ import django
 django.setup()
 from django.conf import settings
 
-# ========== 配置 ==========
+# 配置
 OUT_LABEL_DIR = Path(__file__).parent / "out_label"
 OUTPUT_DIR = Path(__file__).parent / "finetune_data"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -28,7 +28,7 @@ OUTPUT_CSV = OUTPUT_DIR / "all_labeled_data.csv"
 KEEP_COLUMNS = ["content", "image_path", "coarse_sentiment", "fine_sentiment"]
 
 
-# ========== 路径转换辅助函数 ==========
+# 路径转换辅助函数
 def absolute_to_relative(abs_path: str) -> str:
     if not abs_path:
         return ""

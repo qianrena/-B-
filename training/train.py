@@ -23,7 +23,7 @@ import seaborn as sns
 import cn_clip.clip as clip
 from cn_clip.clip import load_from_name
 
-# ---------- 路径配置 ----------
+# 路径配置
 TRAINING_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = TRAINING_DIR.parent
 
@@ -38,7 +38,7 @@ SAVE_MODEL_PATH = SAVE_MODEL_DIR / "sentiment_model_lora_best.pth"
 PLOTS_DIR = TRAINING_DIR / "plots"
 PLOTS_DIR.mkdir(exist_ok=True)
 
-# ---------- 超参数 ----------
+# 超参数
 device = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 4
 GRADIENT_ACCUMULATION = 2
@@ -56,14 +56,14 @@ print(f"预训练模型: {PRETRAINED_MODEL_PATH}")
 print(f"数据文件: {CSV_PATH}")
 print(f"图片根目录: {MEDIA_ROOT}")
 
-# ---------- 1. 加载 Chinese-CLIP ----------
+# 加载 Chinese-CLIP
 model, preprocess = load_from_name(
     name=MODEL_NAME,
     device=device,
     download_root=str(PRETRAINED_MODEL_PATH.parent)
 )
 
-# ---------- 2. LoRA 配置 ----------
+# LoRA 配置
 lora_config = LoraConfig(
     r=16,
     lora_alpha=32,
@@ -76,7 +76,7 @@ print("\n可训练参数统计:")
 model.print_trainable_parameters()
 
 
-# ---------- 3. 双粒度分类头 ----------
+# 双粒度分类头
 class MultiHeadSentimentModel(torch.nn.Module):
     def __init__(self, clip_model):
         super().__init__()
@@ -97,7 +97,6 @@ class MultiHeadSentimentModel(torch.nn.Module):
         split_features = torch.split(all_image_features, counts)
         image_features = torch.stack([f.mean(dim=0) for f in split_features])
 
-        # 剩下的判断逻辑和原来完全一致
         image_sum = torch.tensor([img.sum() for img in images_list]).to(texts.device)
         has_image = image_sum != 0
         features = text_features.clone()
@@ -109,7 +108,7 @@ class MultiHeadSentimentModel(torch.nn.Module):
 sentiment_model = MultiHeadSentimentModel(model).to(device)
 
 
-# ---------- 4. 数据集类 ----------
+# 数据集类
 class SentimentDataset(Dataset):
     def __init__(self, df, media_root, preprocess):
         self.df = df.reset_index(drop=True)
@@ -162,7 +161,7 @@ def custom_collate_fn(batch):
     return images_list, texts, coarse_y, fine_y
 
 
-# ---------- 5. 数据划分 ----------
+# 数据划分
 df_all = pd.read_csv(CSV_PATH)
 # 按细粒度分层，确保每个集合包含所有细粒度类别
 train_val_df, test_df = train_test_split(
@@ -185,7 +184,7 @@ val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, colla
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=custom_collate_fn)
 
 
-# ---------- 6. 类别权重计算 ----------
+# 类别权重计算
 def compute_class_weights(df, label_column, class_list):
     counts = df[label_column].value_counts().to_dict()
     total = len(df)
@@ -208,7 +207,7 @@ print(f"\n粗粒度类别权重: {dict(zip(coarse_classes, coarse_weights.cpu().
 print(f"细粒度类别权重: {dict(zip(fine_classes, fine_weights.cpu().numpy()))}")
 
 
-# ---------- 7. 评估函数 ----------
+# 评估函数
 @torch.no_grad()
 def evaluate(model, dataloader, loss_fn_coarse, loss_fn_fine):
     model.eval()
@@ -248,7 +247,7 @@ def evaluate(model, dataloader, loss_fn_coarse, loss_fn_fine):
     }
 
 
-# ---------- 8. 训练准备 ----------
+# 训练准备
 optimizer = torch.optim.AdamW(sentiment_model.parameters(), lr=LEARNING_RATE)
 loss_fn_coarse = torch.nn.CrossEntropyLoss(weight=coarse_weights)
 loss_fn_fine = torch.nn.CrossEntropyLoss(weight=fine_weights)
@@ -264,7 +263,7 @@ history = {
 best_f1 = 0.0
 patience_counter = 0
 
-# ---------- 9. 训练循环 ----------
+# 训练循环
 for epoch in range(EPOCHS):
     sentiment_model.train()
     total_train_loss = 0
@@ -317,7 +316,7 @@ for epoch in range(EPOCHS):
             break
 
 
-# ---------- 10. 绘制训练曲线 ----------
+# 绘制训练曲线
 def plot_training_curves(history, save_dir):
     epochs = range(1, len(history['train_loss']) + 1)
 
@@ -349,7 +348,7 @@ def plot_training_curves(history, save_dir):
 
 plot_training_curves(history, PLOTS_DIR)
 
-# ---------- 11. 最终测试 ----------
+# 最终测试
 print("\n加载最佳模型进行测试...")
 sentiment_model.load_state_dict(torch.load(SAVE_MODEL_PATH))
 test_metrics = evaluate(sentiment_model, test_loader, loss_fn_coarse, loss_fn_fine)
@@ -367,7 +366,7 @@ print(classification_report(test_metrics['fine_labels'], test_metrics['fine_pred
                             target_names=fine_classes, digits=4))
 
 
-# ---------- 12. 绘制混淆矩阵 ----------
+# 绘制混淆矩阵
 def plot_confusion_matrix(y_true, y_pred, classes, title, save_path):
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(8, 6))

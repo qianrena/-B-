@@ -9,7 +9,7 @@ import sys
 import csv
 import django
 
-# ===== 动态添加项目根目录到 sys.path =====
+# 动态添加项目根目录到 sys.path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
@@ -20,17 +20,17 @@ from django.conf import settings
 from django.db import models
 from app_bili.models import CommentInfo
 
-# ===== 配置输出目录 =====
+# 配置输出目录
 OUTPUT_DIR = os.path.join(settings.BASE_DIR, 'llm_label', 'data')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# ===== 统计变量 =====
+# 统计变量
 total_videos = 0
 total_text_comments = 0
 total_image_comments = 0
 total_exported_files = 0
 
-# ===== 获取所有视频 bvid =====
+# 获取所有视频 bvid
 all_bvids = CommentInfo.objects.values_list('bvid', flat=True).distinct()
 
 for bvid in all_bvids:
@@ -106,7 +106,7 @@ for bvid in all_bvids:
 
     print(f"视频 {bvid} 导出完成，文本 {len(selected_text)} 条，图片 {len(selected_image)} 条 -> {csv_filename}")
 
-# ===== 最终统计输出 =====
+# 最终统计输出
 print("\n" + "=" * 60)
 print("导出任务完成统计")
 print("=" * 60)

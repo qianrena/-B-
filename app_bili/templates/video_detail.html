@@ -3,315 +3,375 @@
 {% block title %}{{ video.title }} - B站视频舆情可视化分析系统{% endblock %}
 
 {% block extra_css %}
-<style>
-    .info-card, .chart-card {
-        border: none;
-        box-shadow: 0 0 10px rgba(0,0,0,0.05);
-        border-radius: 12px;
-    }
-    .btn-primary {
-        background-color: #1976d2;
-        border-color: #1976d2;
-    }
-    .btn-primary:hover {
-        background-color: #1565c0;
-        border-color: #1565c0;
-    }
-    .cover-container {
-        position: relative;
-        width: 100%;
-        padding-top: 66.66%; /* B站封面 3:2 比例 */
-        overflow: hidden;
-        border-radius: 8px;
-    }
-    .cover-container img {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.25em 0.5em;
-    }
-    .stat-item {
-        text-align: center;
-        padding: 0.5rem;
-    }
-    .stat-item i {
-        font-size: 1.2rem;
-        color: #1976d2;
-        margin-bottom: 0.25rem;
-    }
-    .chart-container {
-        width: 100%;
-        min-height: 400px;
-    }
-</style>
+    <style>
+        .info-card, .chart-card {
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+        }
+
+        .btn-primary {
+            background-color: #1976d2;
+            border-color: #1976d2;
+        }
+
+        .btn-primary:hover {
+            background-color: #1565c0;
+            border-color: #1565c0;
+        }
+
+        .cover-container {
+            position: relative;
+            width: 100%;
+            padding-top: 66.66%; /* B站封面 3:2 比例 */
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .cover-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.25em 0.5em;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .stat-item i {
+            font-size: 1.2rem;
+            color: #1976d2;
+            margin-bottom: 0.25rem;
+        }
+
+        .chart-container {
+            width: 100%;
+            min-height: 400px;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- 面包屑 -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}">首页</a></li>
-            <li class="breadcrumb-item active" aria-current="page">视频详情</li>
-        </ol>
-    </nav>
+    <div class="container-fluid">
+        <!-- 面包屑 -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">首页</a></li>
+                <li class="breadcrumb-item active" aria-current="page">视频详情</li>
+            </ol>
+        </nav>
 
-    <!-- 视频基础信息 -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="info-card h-100">
-                <div class="p-3">
-                    <div class="cover-container">
-                        {% if video.cover_local_path %}
-                        <img src="{{ MEDIA_URL }}{{ video.cover_local_path|safe }}" alt="{{ video.title }}">
-                        {% else %}
-                        <img src="{% static 'images/default_cover.jpg' %}" alt="默认封面">
-                        {% endif %}
-                        <!-- 分区标签 -->
-                        {% if video.tname %}
-                        <span class="badge bg-primary position-absolute top-1 start-1">{{ video.tname }}</span>
-                        {% endif %}
-                        <!-- 时长 -->
-                        {% if video.duration %}
-                        <span class="badge bg-dark position-absolute bottom-1 end-1 duration-span" data-seconds="{{ video.duration|default:0 }}">
+        <!-- 视频基础信息 -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="info-card h-100">
+                    <div class="p-3">
+                        <div class="cover-container">
+                            {% if video.cover_local_path %}
+                                <img src="{{ MEDIA_URL }}{{ video.cover_local_path|safe }}" alt="{{ video.title }}">
+                            {% else %}
+                                <img src="{% static 'images/default_cover.jpg' %}" alt="默认封面">
+                            {% endif %}
+                            <!-- 分区标签 -->
+                            {% if video.tname %}
+                                <span class="badge bg-primary position-absolute top-1 start-1">{{ video.tname }}</span>
+                            {% endif %}
+                            <!-- 时长 -->
+                            {% if video.duration %}
+                                <span class="badge bg-dark position-absolute bottom-1 end-1 duration-span"
+                                      data-seconds="{{ video.duration|default:0 }}">
                             {{ video.duration|default:0 }}s
                         </span>
-                        {% endif %}
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-8">
-            <div class="info-card h-100 p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="mb-0">{{ video.title }}</h4>
-                    <button class="btn btn-sm {% if is_favorited %}btn-outline-danger{% else %}btn-outline-primary{% endif %}" id="favoriteBtn" data-bvid="{{ video.bvid }}">
-                        <i class="fas fa-heart me-1"></i>
-                        {% if is_favorited %}已收藏{% else %}收藏{% endif %}
-                    </button>
-                </div>
-                <p class="text-muted mb-4">
-                    <i class="fas fa-user me-1"></i>UP主：{{ video.owner_name }}
-                    <span class="ms-3"><i class="fas fa-calendar me-1"></i>发布时间：{{ video.pubdate|date:"Y-m-d H:i" }}</span>
-                    <span class="ms-3"><i class="fab fa-bilibili me-1"></i>BV号：{{ video.bvid }}</span>
-                </p>
+            <div class="col-md-8">
+                <div class="info-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0">{{ video.title }}</h4>
+                        <button class="btn btn-sm {% if is_favorited %}btn-outline-danger{% else %}btn-outline-primary{% endif %}"
+                                id="favoriteBtn" data-bvid="{{ video.bvid }}">
+                            <i class="fas fa-heart me-1"></i>
+                            {% if is_favorited %}已收藏{% else %}收藏{% endif %}
+                        </button>
+                    </div>
+                    <p class="text-muted mb-4">
+                        <i class="fas fa-user me-1"></i>UP主：{{ video.owner_name }}
+                        <span class="ms-3"><i
+                                class="fas fa-calendar me-1"></i>发布时间：{{ video.pubdate|date:"Y-m-d H:i" }}</span>
+                        <span class="ms-3"><i class="fab fa-bilibili me-1"></i>BV号：{{ video.bvid }}</span>
+                    </p>
 
-                <!-- 统计数据 -->
-                <div class="row mb-4">
-                    <div class="col stat-item">
-                        <i class="fas fa-eye"></i>
-                        <div class="small text-muted">播放量</div>
-                        <div>{{ video.view_count|default:0 }}</div>
+                    <!-- 统计数据 -->
+                    <div class="row mb-4">
+                        <div class="col stat-item">
+                            <i class="fas fa-eye"></i>
+                            <div class="small text-muted">播放量</div>
+                            <div>{{ video.view_count|default:0 }}</div>
+                        </div>
+                        <div class="col stat-item">
+                            <i class="fas fa-thumbs-up"></i>
+                            <div class="small text-muted">点赞</div>
+                            <div>{{ video.like_count|default:0 }}</div>
+                        </div>
+                        <div class="col stat-item">
+                            <i class="fas fa-coins"></i>
+                            <div class="small text-muted">投币</div>
+                            <div>{{ video.coin_count|default:0 }}</div>
+                        </div>
+                        <div class="col stat-item">
+                            <i class="fas fa-star"></i>
+                            <div class="small text-muted">收藏</div>
+                            <div>{{ video.favorite_count|default:0 }}</div>
+                        </div>
+                        <div class="col stat-item">
+                            <i class="fas fa-share"></i>
+                            <div class="small text-muted">分享</div>
+                            <div>{{ video.share_count|default:0 }}</div>
+                        </div>
+                        <div class="col stat-item">
+                            <i class="fas fa-comment-dots"></i>
+                            <div class="small text-muted">弹幕</div>
+                            <div>{{ video.danmaku_count|default:0 }}</div>
+                        </div>
                     </div>
-                    <div class="col stat-item">
-                        <i class="fas fa-thumbs-up"></i>
-                        <div class="small text-muted">点赞</div>
-                        <div>{{ video.like_count|default:0 }}</div>
-                    </div>
-                    <div class="col stat-item">
-                        <i class="fas fa-coins"></i>
-                        <div class="small text-muted">投币</div>
-                        <div>{{ video.coin_count|default:0 }}</div>
-                    </div>
-                    <div class="col stat-item">
-                        <i class="fas fa-star"></i>
-                        <div class="small text-muted">收藏</div>
-                        <div>{{ video.favorite_count|default:0 }}</div>
-                    </div>
-                    <div class="col stat-item">
-                        <i class="fas fa-share"></i>
-                        <div class="small text-muted">分享</div>
-                        <div>{{ video.share_count|default:0 }}</div>
-                    </div>
-                    <div class="col stat-item">
-                        <i class="fas fa-comment-dots"></i>
-                        <div class="small text-muted">弹幕</div>
-                        <div>{{ video.danmaku_count|default:0 }}</div>
-                    </div>
-                </div>
 
-                <!-- 视频标签 -->
-                {% if video.tags %}
-                <div class="pt-3 border-top">
-                    {% for tag in video.tags %}
-                    <span class="badge bg-light text-primary me-1 mb-1">{{ tag }}</span>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- 舆情分析图表区域 -->
-    <div class="row">
-        <div class="col">
-            <div class="chart-card">
-                <div class="card-header bg-white border-0 pt-4 px-4">
-                    <h5 class="mb-0">
-                        <i class="fas fa-chart-pie me-2" style="color: #1976d2;"></i>
-                        舆情分析图表
-                    </h5>
-                </div>
-                <div class="card-body pt-4 px-4">
-                    {% if analysis and analysis.status == 'completed' %}
-                    <div class="row g-4">
-                        <!-- 粗粒度情感饼图 -->
-                        {% if analysis.chart_coarse_pie_content %}
-                        <div class="col-md-6">
-                            <h6 class="mb-2">粗粒度情感分布</h6>
-                            <div class="chart-container">
-                                {{ analysis.chart_coarse_pie_content|safe }}
-                            </div>
+                    <!-- 视频标签 -->
+                    {% if video.tags %}
+                        <div class="pt-3 border-top">
+                            {% for tag in video.tags %}
+                                <span class="badge bg-light text-primary me-1 mb-1">{{ tag }}</span>
+                            {% endfor %}
                         </div>
-                        {% endif %}
-                        <!-- 细粒度情感柱状图 -->
-                        {% if analysis.chart_fine_bar_content %}
-                        <div class="col-md-6">
-                            <h6 class="mb-2">细粒度情感分布</h6>
-                            <div class="chart-container">
-                                {{ analysis.chart_fine_bar_content|safe }}
-                            </div>
-                        </div>
-                        {% endif %}
-                        <!-- 粗粒度累计评论数 -->
-                        {% if analysis.chart_coarse_cum_count_content %}
-                        <div class="col-md-6">
-                            <h6 class="mb-2">粗粒度评论累计趋势</h6>
-                            <div class="chart-container">
-                                {{ analysis.chart_coarse_cum_count_content|safe }}
-                            </div>
-                        </div>
-                        {% endif %}
-                        <!-- 粗粒度累计点赞 -->
-                        {% if analysis.chart_coarse_cum_like_content %}
-                        <div class="col-md-6">
-                            <h6 class="mb-2">粗粒度点赞累计趋势</h6>
-                            <div class="chart-container">
-                                {{ analysis.chart_coarse_cum_like_content|safe }}
-                            </div>
-                        </div>
-                        {% endif %}
-                        <!-- 细粒度累计评论数 -->
-                        {% if analysis.chart_fine_cum_count_content %}
-                        <div class="col-md-6">
-                            <h6 class="mb-2">细粒度评论累计趋势</h6>
-                            <div class="chart-container">
-                                {{ analysis.chart_fine_cum_count_content|safe }}
-                            </div>
-                        </div>
-                        {% endif %}
-                        <!-- 细粒度累计点赞 -->
-                        {% if analysis.chart_fine_cum_like_content %}
-                        <div class="col-md-6">
-                            <h6 class="mb-2">细粒度点赞累计趋势</h6>
-                            <div class="chart-container">
-                                {{ analysis.chart_fine_cum_like_content|safe }}
-                            </div>
-                        </div>
-                        {% endif %}
-                        <!-- 负面率趋势 -->
-                        {% if analysis.chart_dual_axis_content %}
-                        <div class="col-md-12">
-                            <h6 class="mb-2">评论量与负面率趋势</h6>
-                            <div class="chart-container">
-                                {{ analysis.chart_dual_axis_content|safe }}
-                            </div>
-                        </div>
-                        {% endif %}
-                        <!-- 词云 -->
-                        {% if analysis.chart_wordcloud_content %}
-                        <div class="col-md-12">
-                            <h6 class="mb-2">评论词云</h6>
-                            <div class="chart-container">
-                                {{ analysis.chart_wordcloud_content|safe }}
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-chart-pie fa-4x text-muted mb-4"></i>
-                        <h4>暂无舆情分析数据</h4>
-                        <p class="text-muted">完成视频爬取后，进行情感分析即可查看这里的所有图表</p>
-                    </div>
                     {% endif %}
                 </div>
             </div>
         </div>
+
+        <!-- 舆情分析图表区域 -->
+        <div class="row">
+            <div class="col">
+                <div class="chart-card">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-pie me-2" style="color: #1976d2;"></i>
+                            舆情分析图表
+                        </h5>
+                    </div>
+                    <div class="card-body pt-4 px-4">
+                        {% if analysis and analysis.status == 'completed' %}
+                            <div class="row g-4">
+                                <!-- 粗粒度情感饼图 -->
+                                {% if analysis.chart_coarse_pie_content %}
+                                    <div class="col-md-6">
+                                        <h6 class="mb-2">粗粒度情感分布</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_coarse_pie_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- 细粒度情感柱状图 -->
+                                {% if analysis.chart_fine_bar_content %}
+                                    <div class="col-md-6">
+                                        <h6 class="mb-2">细粒度情感分布</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_fine_bar_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- 粗粒度累计评论数 -->
+                                {% if analysis.chart_coarse_cum_count_content %}
+                                    <div class="col-md-6">
+                                        <h6 class="mb-2">粗粒度评论累计趋势</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_coarse_cum_count_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- 粗粒度累计点赞 -->
+                                {% if analysis.chart_coarse_cum_like_content %}
+                                    <div class="col-md-6">
+                                        <h6 class="mb-2">粗粒度点赞累计趋势</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_coarse_cum_like_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- 细粒度累计评论数 -->
+                                {% if analysis.chart_fine_cum_count_content %}
+                                    <div class="col-md-6">
+                                        <h6 class="mb-2">细粒度评论累计趋势</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_fine_cum_count_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- 细粒度累计点赞 -->
+                                {% if analysis.chart_fine_cum_like_content %}
+                                    <div class="col-md-6">
+                                        <h6 class="mb-2">细粒度点赞累计趋势</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_fine_cum_like_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- 负面率趋势 -->
+                                {% if analysis.chart_dual_axis_content %}
+                                    <div class="col-md-12">
+                                        <h6 class="mb-2">评论量与负面率趋势</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_dual_axis_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                <!-- ========= 新增图表开始 ========= -->
+                                <!-- 细粒度平均点赞柱状图 -->
+                                {% if analysis.chart_fine_like_bar_content %}
+                                    <div class="col-md-6">
+                                        <h6 class="mb-2">细粒度情感平均点赞数</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_fine_like_bar_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- 热评 vs 普通评论情感对比 -->
+                                {% if analysis.chart_hot_vs_normal_content %}
+                                    <div class="col-md-6">
+                                        <h6 class="mb-2">热评与普通评论情感对比</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_hot_vs_normal_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- 地区情感占比图 -->
+                                {% if analysis.chart_region_sentiment_content %}
+                                    <div class="col-md-12">
+                                        <h6 class="mb-2">不同地区用户情感占比（Top10）</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_region_sentiment_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- 带图 vs 纯文本情感对比 -->
+                                {% if analysis.chart_image_vs_text_content %}
+                                    <div class="col-md-6">
+                                        <h6 class="mb-2">带图与纯文本评论情感对比</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_image_vs_text_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- 用户等级情感占比 -->
+                                {% if analysis.chart_level_sentiment_content %}
+                                    <div class="col-md-6">
+                                        <h6 class="mb-2">不同用户等级情感占比</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_level_sentiment_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- ========= 新增图表结束 ========= -->
+
+                                <!-- 词云 -->
+                                {% if analysis.chart_wordcloud_content %}
+                                    <div class="col-md-12">
+                                        <h6 class="mb-2">评论词云</h6>
+                                        <div class="chart-container">
+                                            {{ analysis.chart_wordcloud_content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-chart-pie fa-4x text-muted mb-4"></i>
+                                <h4>暂无舆情分析数据</h4>
+                                <p class="text-muted">完成视频爬取后，进行情感分析即可查看这里的所有图表</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 处理时长转换
-    const durationSpans = document.querySelectorAll('.duration-span');
-    durationSpans.forEach(span => {
-        const seconds = parseInt(span.dataset.seconds);
-        if (!isNaN(seconds)) {
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            span.textContent = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-        }
-    });
-});
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 处理时长转换
+            const durationSpans = document.querySelectorAll('.duration-span');
+            durationSpans.forEach(span => {
+                const seconds = parseInt(span.dataset.seconds);
+                if (!isNaN(seconds)) {
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = seconds % 60;
+                    span.textContent = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+                }
+            });
+        });
 
-// 收藏按钮的逻辑
-document.getElementById('favoriteBtn').addEventListener('click', function() {
-    const btn = this;
-    const bvid = btn.dataset.bvid;
+        // 收藏按钮的逻辑
+        document.getElementById('favoriteBtn').addEventListener('click', function () {
+            const btn = this;
+            const bvid = btn.dataset.bvid;
 
-    // 发送POST请求切换收藏状态
-    fetch("{% url 'toggle_favorite' %}", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: `bvid=${encodeURIComponent(bvid)}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // 更新按钮的状态和样式
-            if (data.is_favorited) {
-                btn.className = 'btn btn-sm btn-outline-danger';
-                btn.innerHTML = '<i class="fas fa-heart me-1"></i>已收藏';
-            } else {
-                btn.className = 'btn btn-sm btn-outline-primary';
-                btn.innerHTML = '<i class="fas fa-heart me-1"></i>收藏';
+            // 发送POST请求切换收藏状态
+            fetch("{% url 'toggle_favorite' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: `bvid=${encodeURIComponent(bvid)}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 更新按钮的状态和样式
+                        if (data.is_favorited) {
+                            btn.className = 'btn btn-sm btn-outline-danger';
+                            btn.innerHTML = '<i class="fas fa-heart me-1"></i>已收藏';
+                        } else {
+                            btn.className = 'btn btn-sm btn-outline-primary';
+                            btn.innerHTML = '<i class="fas fa-heart me-1"></i>收藏';
+                        }
+                        // 已经删掉了原来的成功弹窗提示
+                    } else {
+                        alert(data.error); // 只有错误的时候才提示
+                    }
+                })
+                .catch(error => {
+                    alert('操作失败，请重试');
+                });
+        });
+
+        // 工具函数：获取CSRF的cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
             }
-            // 已经删掉了原来的成功弹窗提示
-        } else {
-            alert(data.error); // 只有错误的时候才提示
+            return cookieValue;
         }
-    })
-    .catch(error => {
-        alert('操作失败，请重试');
-    });
-});
-
-// 工具函数：获取CSRF的cookie
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-</script>
+    </script>
 {% endblock %}
